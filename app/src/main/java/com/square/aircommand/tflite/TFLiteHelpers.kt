@@ -18,10 +18,13 @@ import java.security.NoSuchAlgorithmException
 object TFLiteHelpers {
     private const val TAG = "QualcommTFLiteHelpers"
 
+    // Delegate 타입을 정의함
     enum class DelegateType {
-        GPUv2, QNN_NPU
+        GPUv2,
+        QNN_NPU
     }
 
+    // delegate 우선순위를 기준으로 interpreter와 delegate들을 생성함
     fun CreateInterpreterAndDelegatesFromOptions(
         tfLiteModel: MappedByteBuffer,
         delegatePriorityOrder: Array<Array<DelegateType>>,
@@ -33,7 +36,9 @@ object TFLiteHelpers {
         val delegates = mutableMapOf<DelegateType, Delegate>()
         val attemptedDelegates = mutableSetOf<DelegateType>()
 
+        // delegate 조합별로 순차적으로 시도함
         for (delegatesToRegister in delegatePriorityOrder) {
+            // 이미 시도한 delegate는 건너뜀
             delegatesToRegister.filterNot { attemptedDelegates.contains(it) }.forEach { type ->
                 CreateDelegate(type, nativeLibraryDir, cacheDir, modelIdentifier)?.let {
                     delegates[type] = it
@@ -41,18 +46,14 @@ object TFLiteHelpers {
                 attemptedDelegates.add(type)
             }
 
+            // 이 조합의 모든 delegate가 생성되지 않았으면 다음으로 넘어감
             if (delegatesToRegister.any { !delegates.containsKey(it) }) continue
 
+            // interpreter 생성 시도함
             val pairs = delegatesToRegister.map { Pair(it, delegates[it]) }.toTypedArray()
             val interpreter = CreateInterpreterFromDelegates(pairs, numCPUThreads, tfLiteModel) ?: continue
 
-            val selectedDelegates = if (delegatesToRegister.isEmpty()) {
-                "CPU (XNNPack)"
-            } else {
-                delegatesToRegister.joinToString(", ") { it.name }
-            }
-            Log.i(TAG, "✅ 선택된 delegate 조합: $selectedDelegates")
-
+            // 사용하지 않은 delegate는 해제함
             val used = delegatesToRegister.toSet()
             delegates.keys.filterNot { it in used }.forEach {
                 delegates.remove(it)?.close()
@@ -61,9 +62,11 @@ object TFLiteHelpers {
             return Pair(interpreter, delegates)
         }
 
+        // 실패 시 예외 발생시킴
         throw RuntimeException("Unable to create interpreter with any delegate combination.")
     }
 
+    // 주어진 delegate 배열로 interpreter를 생성함
     fun CreateInterpreterFromDelegates(
         delegates: Array<Pair<DelegateType, Delegate?>>, numCPUThreads: Int, tfLiteModel: MappedByteBuffer
     ): Interpreter? {
@@ -71,14 +74,15 @@ object TFLiteHelpers {
             setAllowBufferHandleOutput(true)
             setUseNNAPI(false)
             setNumThreads(numCPUThreads)
-            setUseXNNPACK(true)
+            setUseXNNPACK(true) // CPU fallback 대비
 
+            // 각 delegate를 options에 추가함
             delegates.forEach { (type, delegate) ->
                 if (delegate != null) {
-                    Log.i(TAG, "[$type] delegate가 정상적으로 추가되었습니다.")
+                    Log.i(TAG, "✅ [$type] delegate가 정상적으로 추가됨")
                     addDelegate(delegate)
                 } else {
-                    Log.w(TAG, "[$type] delegate가 null이라 추가되지 않습니다.")
+                    Log.w(TAG, "⚠️ [$type] delegate가 null이라 추가되지 않음")
                 }
             }
         }
@@ -86,17 +90,18 @@ object TFLiteHelpers {
         return try {
             Interpreter(tfLiteModel, options).apply {
                 allocateTensors()
-                Log.i(TAG, "Interpreter가 성공적으로 생성되었습니다. 사용된 delegate: ${
+                Log.i(TAG, "🎯 Interpreter 생성 성공함. 사용된 delegate: ${
                     delegates.map { it.first }.joinToString(", ")
                 }")
             }
         } catch (e: Exception) {
             val enabledDelegates = delegates.mapNotNull { it.first.name }.toMutableList().apply { add("XNNPack") }
-            Log.e(TAG, "❌ Interpreter 생성 실패. 시도된 delegate: ${enabledDelegates.joinToString(", ")} | 오류: ${e.message}")
+            Log.e(TAG, "❌ Interpreter 생성 실패함. 시도된 delegate: ${enabledDelegates.joinToString(", ")} | 오류: ${e.message}")
             null
         }
     }
 
+    // assets 폴더에서 모델 파일을 읽고 MD5 해시값을 반환함
     @Throws(IOException::class, NoSuchAlgorithmException::class)
     fun loadModelFile(assets: AssetManager, modelFilename: String): Pair<MappedByteBuffer, String> {
         val fileDescriptor = assets.openFd(modelFilename)
@@ -109,6 +114,7 @@ object TFLiteHelpers {
             val declaredLength = fileDescriptor.declaredLength
             buffer = channel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
 
+            // 모델의 MD5 해시를 계산함
             val digest = MessageDigest.getInstance("MD5")
             inputStream.skip(startOffset)
             DigestInputStream(inputStream, digest).use { dis ->
@@ -125,6 +131,7 @@ object TFLiteHelpers {
         return Pair(buffer, hash)
     }
 
+    // delegate 타입에 따라 해당 delegate를 생성함
     private fun CreateDelegate(
         delegateType: DelegateType,
         nativeLibraryDir: String,
@@ -137,6 +144,7 @@ object TFLiteHelpers {
         }
     }
 
+    // QNN NPU delegate를 생성함 (HTP fallback 포함)
     private fun CreateQNN_NPUDelegate(
         nativeLibraryDir: String,
         cacheDir: String,
@@ -149,17 +157,19 @@ object TFLiteHelpers {
             setModelToken(modelIdentifier)
 
             if (QnnDelegate.checkCapability(QnnDelegate.Capability.DSP_RUNTIME)) {
+                // DSP backend 설정함
                 setBackendType(QnnDelegate.Options.BackendType.DSP_BACKEND)
                 setDspOptions(
                     QnnDelegate.Options.DspPerformanceMode.DSP_PERFORMANCE_BURST,
                     QnnDelegate.Options.DspPdSession.DSP_PD_SESSION_ADAPTIVE
                 )
             } else {
+                // HTP fallback 설정함
                 val hasFP16 = QnnDelegate.checkCapability(QnnDelegate.Capability.HTP_RUNTIME_FP16)
                 val hasQuant = QnnDelegate.checkCapability(QnnDelegate.Capability.HTP_RUNTIME_QUANTIZED)
 
                 if (!hasFP16 && !hasQuant) {
-                    Log.e(TAG, "QNN with NPU backend is not supported on this device.")
+                    Log.e(TAG, "QNN NPU backend를 지원하지 않음")
                     return null
                 }
 
@@ -175,11 +185,12 @@ object TFLiteHelpers {
         return try {
             QnnDelegate(options)
         } catch (e: Exception) {
-            Log.e(TAG, "QNN delegate failed: ${e.message}")
+            Log.e(TAG, "QNN delegate 생성 실패함: ${e.message}")
             null
         }
     }
 
+    // GPUv2 delegate를 생성함
     private fun CreateGPUv2Delegate(cacheDir: String, modelIdentifier: String): Delegate? {
         val options = GpuDelegateFactory.Options().apply {
             inferencePreference = GpuDelegateFactory.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED
@@ -190,7 +201,7 @@ object TFLiteHelpers {
         return try {
             GpuDelegate(options)
         } catch (e: Exception) {
-            Log.e(TAG, "GPUv2 delegate failed: ${e.message}")
+            Log.e(TAG, "GPUv2 delegate 생성 실패함: ${e.message}")
             null
         }
     }

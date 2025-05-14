@@ -14,8 +14,3 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
     }
 }
-
-//        setContent {
-//            // Delegate 확인
-//            DelegateStatusScreen(context = this)
-//        }
