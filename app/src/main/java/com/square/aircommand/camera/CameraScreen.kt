@@ -85,7 +85,7 @@ fun CameraScreen(
             detectionFrameCount = detectionFrameCount,
             latestPoints = latestPoints,
             landmarksState = landmarksState,
-            validDetectionThreshold = 50
+            validDetectionThreshold = 30
         )
     }
 
