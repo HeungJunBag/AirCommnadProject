@@ -1,5 +1,6 @@
 package com.square.aircommand.camera
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.PointF
 import android.hardware.camera2.CameraCharacteristics
@@ -160,6 +161,7 @@ object CameraInitializer {
                 preview,
                 analysis
             )
+//            Log.d(TAG, "백그라운드 카메라 서비스 시작됨")
         }, ContextCompat.getMainExecutor(context))
     }
 }
