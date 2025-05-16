@@ -14,20 +14,23 @@ import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
-import com.square.aircommand.classifier.GestureClassifier
-import com.square.aircommand.classifier.GestureLabelMapper
-import com.square.aircommand.handdetector.HandDetector
-import com.square.aircommand.handlandmarkdetector.HandLandmarkDetector
-import com.square.aircommand.utils.ThrottledLogger
-import com.square.aircommand.utils.toBitmapCompat
-import com.square.aircommand.camera.HandAnalyzer
-import com.square.aircommand.camera.getBackCameraSensorOrientation
-import com.square.aircommand.tflite.TFLiteHelpers
-import kotlinx.coroutines.*
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.ContextCompat
+import com.square.aircommand.camera.HandAnalyzer
+import com.square.aircommand.classifier.GestureClassifier
+import com.square.aircommand.classifier.GestureLabelMapper
+import com.square.aircommand.gesture.GestureActionExecutor
+import com.square.aircommand.gesture.GestureActionMapper
+import com.square.aircommand.gesture.GestureLabel
+import com.square.aircommand.handdetector.HandDetector
+import com.square.aircommand.handlandmarkdetector.HandLandmarkDetector
+import com.square.aircommand.tflite.TFLiteHelpers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import java.util.concurrent.Executors
 
 class CameraService : Service() {
@@ -86,7 +89,15 @@ class CameraService : Service() {
             detectionFrameCount = detectionFrameCount,
             latestPoints = latestPoints,
             landmarksState = landmarksState,
-            validDetectionThreshold = 10
+            validDetectionThreshold = 50, // 속도 제한
+            onGestureDetected = { gestureLabel ->
+                // NONE은 제외하고 동작 실행
+                if (gestureLabel != GestureLabel.NONE) {
+                    val action = GestureActionMapper.getSavedGestureAction(this, gestureLabel)
+                    GestureActionExecutor.execute(action, this)
+                    Log.d(tag, "🙌 제스처: $gestureLabel → 동작: $action 실행됨")
+                }
+            }
         )
     }
 
@@ -95,7 +106,7 @@ class CameraService : Service() {
 
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA // 원래는 후면 이엇음
 
             val analysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

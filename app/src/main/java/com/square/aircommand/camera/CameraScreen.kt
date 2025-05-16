@@ -36,6 +36,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.square.aircommand.classifier.GestureClassifier
 import com.square.aircommand.classifier.GestureLabelMapper
+import com.square.aircommand.gesture.GestureLabel
 import com.square.aircommand.handdetector.HandDetector
 import com.square.aircommand.handlandmarkdetector.HandLandmarkDetector
 import com.square.aircommand.overlay.HandLandmarkOverlay
@@ -85,7 +86,7 @@ fun CameraScreen(
             detectionFrameCount = detectionFrameCount,
             latestPoints = latestPoints,
             landmarksState = landmarksState,
-            validDetectionThreshold = 30
+            validDetectionThreshold = 50,
         )
     }
 
@@ -157,7 +158,7 @@ object CameraInitializer {
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
                 lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
+                CameraSelector.DEFAULT_FRONT_CAMERA, // 원래 후면 이엇음
                 preview,
                 analysis
             )
@@ -177,7 +178,8 @@ class HandAnalyzer(
     private val detectionFrameCount: MutableState<Int>,
     private val latestPoints: SnapshotStateList<PointF>,
     private val landmarksState: MutableState<List<Triple<Double, Double, Double>>>,
-    private val validDetectionThreshold: Int
+    private val validDetectionThreshold: Int,
+    private val onGestureDetected: ((GestureLabel) -> Unit)? = null // ✅ 추가됨
 ) : ImageAnalysis.Analyzer {
 
     // 분석 로직 실행 (프레임마다 호출됨)
@@ -211,6 +213,8 @@ class HandAnalyzer(
                             val gestureName = gestureLabelMapper.getLabel(gestureIndex)
                             gestureText.value = "$gestureName (${(confidence * 100).toInt()}%)"
                             ThrottledLogger.log("HandAnalyzer", "✋ $gestureName ($gestureIndex, ${"%.2f".format(confidence)})")
+
+                            onGestureDetected?.invoke(GestureLabel.fromId(gestureIndex)) // ✅ 제스처 콜백 실행 추가
                         } else {
                             // 일정 프레임 이상 감지되지 않으면 대기
                             gestureText.value = "제스처 없음"
