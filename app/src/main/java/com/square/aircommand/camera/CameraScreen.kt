@@ -45,18 +45,6 @@ import com.square.aircommand.utils.toBitmapCompat
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-// 후면 카메라의 센서 회전 각도를 가져오는 함수
-fun getBackCameraSensorOrientation(context: Context): Int {
-    val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    for (cameraId in manager.cameraIdList) {
-        val characteristics = manager.getCameraCharacteristics(cameraId)
-        if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
-            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
-        }
-    }
-    return 0
-}
-
 // 실제 카메라 화면을 띄우는 Composable 함수
 @Composable
 fun CameraScreen(
@@ -86,7 +74,7 @@ fun CameraScreen(
             detectionFrameCount = detectionFrameCount,
             latestPoints = latestPoints,
             landmarksState = landmarksState,
-            validDetectionThreshold = 50,
+            validDetectionThreshold = 20,
         )
     }
 
@@ -237,4 +225,16 @@ class HandAnalyzer(
             imageProxy.close()
         }
     }
+}
+
+// 전면 카메라의 센서 회전 각도를 가져오는 함수
+fun getBackCameraSensorOrientation(context: Context): Int {
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+    for (cameraId in manager.cameraIdList) {
+        val characteristics = manager.getCameraCharacteristics(cameraId)
+        if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+            return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0
+        }
+    }
+    return 0
 }

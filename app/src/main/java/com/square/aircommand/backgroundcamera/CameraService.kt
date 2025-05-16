@@ -89,7 +89,7 @@ class CameraService : Service() {
             detectionFrameCount = detectionFrameCount,
             latestPoints = latestPoints,
             landmarksState = landmarksState,
-            validDetectionThreshold = 50, // 속도 제한
+            validDetectionThreshold = 20, // 속도 제한
             onGestureDetected = { gestureLabel ->
                 // NONE은 제외하고 동작 실행
                 if (gestureLabel != GestureLabel.NONE) {
