@@ -17,10 +17,10 @@
     <string-array name="gesture_action_options">
         <item>동작 없음</item>
         <item>플래시 토글</item>
-        <item>사진 촬영</item>
         <item>볼륨 올리기</item>
         <item>볼륨 내리기</item>
-        <item>스크린 캡처</item>
+        <item>오른쪽으로 스와이프</item>
+        <item>아래로 스와이프</item>
     </string-array>
 
     <!-- 제스처 이름 목록 -->

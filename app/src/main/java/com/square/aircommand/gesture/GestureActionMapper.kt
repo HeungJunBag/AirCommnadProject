@@ -25,10 +25,10 @@ object GestureActionMapper {
      * 제스처 레이블에 대한 기본 매핑
      */
     val defaultMapping = mapOf(
-        GestureLabel.SCISSORS to GestureAction.TAKE_PHOTO,
+        GestureLabel.SCISSORS to GestureAction.SWIPE_RIGHT,
         GestureLabel.ROCK to GestureAction.TOGGLE_FLASH,
         GestureLabel.PAPER to GestureAction.VOLUME_UP,
-        GestureLabel.ONE to GestureAction.SCREENSHOT,
+        GestureLabel.ONE to GestureAction.SWIPE_DOWN,
         GestureLabel.NONE to GestureAction.NONE
     )
 

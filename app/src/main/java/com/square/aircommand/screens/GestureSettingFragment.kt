@@ -50,8 +50,8 @@ class GestureSettingFragment : Fragment() {
         // SharedPreferences에서 각 제스처의 초기 설정값 불러오기 (기본값 지정)
         val paperAction = prefs.getString("gesture_paper_action", GestureAction.VOLUME_UP.displayName) ?: noneDisplay
         val rockAction = prefs.getString("gesture_rock_action", GestureAction.TOGGLE_FLASH.displayName) ?: noneDisplay
-        val scissorsAction = prefs.getString("gesture_scissors_action", GestureAction.TAKE_PHOTO.displayName) ?: noneDisplay
-        val oneAction = prefs.getString("gesture_one_action", GestureAction.SCREENSHOT.displayName) ?: noneDisplay
+        val scissorsAction = prefs.getString("gesture_scissors_action", GestureAction.SWIPE_RIGHT.displayName) ?: noneDisplay
+        val oneAction = prefs.getString("gesture_one_action", GestureAction.SWIPE_DOWN.displayName) ?: noneDisplay
 
         // 각 Spinner에 동작 설정 로직 연결
         setupSpinner(binding.spinnerPaper, GestureLabel.PAPER, paperAction, "gesture_paper_action", options)

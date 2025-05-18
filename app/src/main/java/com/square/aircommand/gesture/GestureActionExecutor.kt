@@ -18,8 +18,8 @@ object GestureActionExecutor {
     // 제스처별 쿨다운 시간 (ms) - 없으면 기본값 사용
     private val cooldownPerAction = mapOf(
         GestureAction.TOGGLE_FLASH to 1000L,
-        GestureAction.TAKE_PHOTO to 1500L,
-        GestureAction.SCREENSHOT to 3000L,
+        GestureAction.SWIPE_RIGHT to 1000L,
+        GestureAction.SWIPE_DOWN to 1000L,
         GestureAction.VOLUME_UP to 500L,
         GestureAction.VOLUME_DOWN to 500L,
     )
@@ -46,8 +46,8 @@ object GestureActionExecutor {
             GestureAction.VOLUME_UP -> adjustVolume(context, true)
             GestureAction.VOLUME_DOWN -> adjustVolume(context, false)
             GestureAction.TOGGLE_FLASH -> toggleFlash(context)
-            GestureAction.TAKE_PHOTO -> takePhoto()
-            GestureAction.SCREENSHOT -> takeScreenshot(context)
+            GestureAction.SWIPE_RIGHT -> swipeRight()
+            GestureAction.SWIPE_DOWN -> swipeDown()
             GestureAction.NONE -> ThrottledLogger.log("GestureAction", "🛑제스처에 아무 기능도 할당되지 않음")
         }
     }
@@ -100,18 +100,44 @@ object GestureActionExecutor {
     private var flashState: Boolean? = null
 
     /**
-     * 사진 촬영 기능 (추후 구현)
+     * 시스템 오른쪽 스와이프 명령 실행
      */
-    private fun takePhoto() {
-        Log.d("GestureAction", "📷 사진 촬영 기능은 아직 구현되지 않았습니다.")
-        // TODO: 카메라 캡처 트리거 로직 추가
+    private fun swipeRight() {
+        try {
+            val command = "input swipe 300 500 1000 500"
+            Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            Log.d("GestureAction", "👉 오른쪽으로 스와이프 실행됨")
+        } catch (e: Exception) {
+            Log.e("GestureAction", "❌ 오른쪽 스와이프 실패: ${e.message}", e)
+        }
     }
 
     /**
-     * 스크린샷 기능 (추후 구현)
+     * 시스템 아래쪽 스와이프 명령 실행
      */
-    private fun takeScreenshot(context: Context) {
-        Log.d("GestureAction", "🖼️ 스크린샷 기능은 아직 구현되지 않았습니다.")
-        // TODO: MediaProjection API 또는 shell command 사용
+    private fun swipeDown() {
+        try {
+            val command = "input swipe 500 300 500 1200"
+            Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            Log.d("GestureAction", "👇 아래로 스와이프 실행됨")
+        } catch (e: Exception) {
+            Log.e("GestureAction", "❌ 아래로 스와이프 실패: ${e.message}", e)
+        }
     }
 }
+
+//    /**
+//     * 사진 촬영 기능 (추후 구현)
+//     */
+//    private fun takePhoto() {
+//        Log.d("GestureAction", "📷 사진 촬영 기능은 아직 구현되지 않았습니다.")
+//        // TODO: 카메라 캡처 트리거 로직 추가
+//    }
+//
+//    /**
+//     * 스크린샷 기능 (추후 구현)
+//     */
+//    private fun takeScreenshot(context: Context) {
+//        Log.d("GestureAction", "🖼️ 스크린샷 기능은 아직 구현되지 않았습니다.")
+//        // TODO: MediaProjection API 또는 shell command 사용
+//    }

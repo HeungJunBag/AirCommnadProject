@@ -8,8 +8,9 @@ package com.square.aircommand.gesture
 enum class GestureAction(val displayName: String) {
     NONE("동작 없음"),
     TOGGLE_FLASH("플래시 토글"),
-    TAKE_PHOTO("사진 촬영"),
+//    TAKE_PHOTO("사진 촬영"),
     VOLUME_UP("볼륨 올리기"),
     VOLUME_DOWN("볼륨 내리기"),
-    SCREENSHOT("스크린 캡처"),
+    SWIPE_RIGHT("오른쪽으로 스와이프"),
+    SWIPE_DOWN("아래로 스와이프")
 }
